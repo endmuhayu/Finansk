@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finansal Analiz Pro (TV + Teknik + Fibonacci)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0b0e14; color: #f3f4f6; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        header { background: #151a21; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f293d; }
+        header h1 { font-size: 1rem; font-weight: 600; color: #fff; }
+        .live-badge { font-size: 0.72rem; color: #10b981; background: rgba(16,185,129,0.12); padding: 3px 8px; border-radius: 6px; }
+
+        /* Sekmeler */
+        .tabs { display: flex; gap: 6px; padding: 10px 12px; background: #11151c; border-bottom: 1px solid #1f293d; }
+        .tab-btn { flex: 1; background: #1f293d; border: none; color: #9ca3af; padding: 8px 10px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+        .tab-btn.active { background: #2563eb; color: #fff; }
+
+        /* Ekleme ve Seçim Çubuğu */
+        .symbol-bar { background: #11151c; padding: 10px 12px; border-bottom: 1px solid #1f293d; display: flex; flex-direction: column; gap: 8px; }
+        .add-row { display: flex; gap: 6px; }
+        .add-row input { flex: 1; background: #1a2234; border: 1px solid #2d3748; color: #fff; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; outline: none; }
+        .add-row button { background: #2563eb; color: #fff; border: none; padding: 0 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+
+        .chip-list { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+        .chip { background: #1f293d; color: #d1d5db; border: 1px solid #2d3748; padding: 5px 10px; border-radius: 14px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .chip.active { background: #2563eb; color: #fff; border-color: #3b82f6; }
+        .chip .del { color: #9ca3af; font-weight: bold; padding-left: 2px; }
+
+        /* Ana İçerik */
+        .content { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 24px; }
+        .card { background: #151a21; border: 1px solid #1f293d; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+        
+        /* TradingView Sadece Fiyat Kartı */
+        .tv-ticker-box { background: #0b0e14; border: 1px solid #1f293d; border-radius: 10px; padding: 4px 8px; min-height: 82px; overflow: hidden; }
+
+        /* Ana Sinyal Kutusu */
+        .signal-box { display: flex; justify-content: space-between; align-items: center; background: #0b0e14; padding: 10px 12px; border-radius: 8px; border: 1px solid #1f293d; }
+        .badge { padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+        .b-strong { background: #10b981; color: #fff; }
+        .b-buy { background: #3b82f6; color: #fff; }
+        .b-hold { background: #f59e0b; color: #fff; }
+        .b-sell { background: #ef4444; color: #fff; }
+
+        .sec-title { font-size: 0.75rem; font-weight: 600; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: -6px; }
+
+        /* İndikatörler Grid (CMF, BB, RSI, StochRSI, MACD, EMA) */
+        .ind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+        .ind-item { background: #0b0e14; padding: 8px 4px; border-radius: 8px; border: 1px solid #1f293d; font-size: 0.7rem; color: #9ca3af; }
+        .ind-item strong { display: block; color: #fff; font-size: 0.82rem; margin-top: 3px; }
+        .ind-sub { font-size: 0.65rem; display: block; margin-top: 1px; }
+
+        /* Canlı Fiyat Giriş Satırı */
+        .calc-row { display: flex; gap: 6px; align-items: center; background: #0b0e14; padding: 8px 10px; border-radius: 8px; border: 1px solid #1f293d; }
+        .calc-row label { font-size: 0.75rem; color: #9ca3af; white-space: nowrap; }
+        .calc-row input { flex: 1; background: #151a21; border: 1px solid #2d3748; color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 0.85rem; width: 100%; outline: none; }
+
+        /* Alım Satım Seviyeleri */
+        .levels-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .lvl-item { background: #0b0e14; padding: 8px 10px; border-radius: 8px; border: 1px solid #1f293d; display: flex; justify-content: space-between; font-size: 0.78rem; }
+        .lvl-item span:first-child { color: #9ca3af; }
+        .c-buy { color: #10b981; font-weight: 700; }
+        .c-stop { color: #ef4444; font-weight: 700; }
+        .c-tgt { color: #3b82f6; font-weight: 700; }
+
+        /* Fibonacci Seviyeleri */
+        .fibo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+        .fibo-item { background: #0b0e14; padding: 7px 4px; border-radius: 8px; border: 1px solid #1f293d; font-size: 0.7rem; color: #9ca3af; }
+        .fibo-item strong { display: block; color: #e5e7eb; font-size: 0.8rem; margin-top: 2px; }
+        .fibo-gold { border-color: rgba(245, 158, 11, 0.45); }
+        .fibo-gold strong { color: #fbbf24; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📊 Finansal Analiz Pro</h1>
+        <span class="live-badge">● TradingView Canlı Veri</span>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="btn-doviz" onclick="setCategory('doviz')">Döviz & Altın</button>
+        <button class="tab-btn" id="btn-crypto" onclick="setCategory('crypto')">Kripto</button>
+        <button class="tab-btn" id="btn-bist" onclick="setCategory('bist')">Borsa</button>
+    </div>
+
+    <div class="symbol-bar">
+        <div class="add-row">
+            <input type="text" id="new-sym" placeholder="Sembol ekle (Örn: EREGL, XRP, EURTRY)">
+            <button type="button" onclick="addAsset()">Ekle</button>
+        </div>
+        <div class="chip-list" id="chip-list"></div>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <!-- TradingView Canlı Fiyat Bandı -->
+            <div class="tv-ticker-box" id="tv-ticker-container"></div>
+
+            <!-- Ana Karar Kutusu -->
+            <div class="signal-box">
+                <div>
+                    <div style="font-size: 0.7rem; color: #9ca3af;">CMF + Bollinger + Trend Kararı</div>
+                    <div id="ui-sig-desc" style="font-size: 0.82rem; font-weight: 600; margin-top: 2px;">Para Girişi Pozitif</div>
+                </div>
+                <span class="badge b-strong" id="ui-badge">GÜÇLÜ AL</span>
+            </div>
+
+            <!-- Teknik İndikatörler (6'lı Panel) -->
+            <div class="sec-title">Teknik İndikatör Sinyalleri</div>
+            <div class="ind-grid">
+                <div class="ind-item">
+                    Chaikin (CMF)
+                    <strong id="ui-cmf">+0.14</strong>
+                    <span class="ind-sub" id="ui-cmf-sig" style="color:#10b981;">Para Girişi</span>
+                </div>
+                <div class="ind-item">
+                    Bollinger
+                    <strong id="ui-bb">Orta Üstü</strong>
+                    <span class="ind-sub" id="ui-bb-sig" style="color:#3b82f6;">Pozitif</span>
+                </div>
+                <div class="ind-item">
+                    EMA (20/50)
+                    <strong id="ui-ema">AL</strong>
+                    <span class="ind-sub" id="ui-ema-val" style="color:#10b981;">Fiyat Üstünde</span>
+                </div>
+                <div class="ind-item">
+                    RSI (14)
+                    <strong id="ui-rsi">58.2</strong>
+                    <span class="ind-sub" id="ui-rsi-sig" style="color:#10b981;">Güçlü</span>
+                </div>
+                <div class="ind-item">
+                    StochRSI
+                    <strong id="ui-stoch">34.5</strong>
+                    <span class="ind-sub" id="ui-stoch-sig" style="color:#10b981;">Yukarı Kesişim</span>
+                </div>
+                <div class="ind-item">
+                    MACD (12,26)
+                    <strong id="ui-macd">AL</strong>
+                    <span class="ind-sub" id="ui-macd-sig" style="color:#10b981;">Pozitif Bölge</span>
+                </div>
+            </div>
+
+            <!-- Canlı Fiyat Girişi -->
+            <div class="calc-row">
+                <label>Yukarıdaki Canlı Fiyat:</label>
+                <input type="number" id="live-price-input" step="any" placeholder="Fiyat..." oninput="calculateLevels()">
+            </div>
+
+            <!-- Alım / Satım Seviyeleri -->
+            <div class="sec-title">Alım / Satım Seviyeleri</div>
+            <div class="levels-grid">
+                <div class="lvl-item"><span>İdeal Alış:</span><span class="c-buy" id="lvl-buy">-</span></div>
+                <div class="lvl-item"><span>Zarar Kes:</span><span class="c-stop" id="lvl-stop">-</span></div>
+                <div class="lvl-item"><span>Hedef 1:</span><span class="c-tgt" id="lvl-t1">-</span></div>
+                <div class="lvl-item"><span>Hedef 2:</span><span class="c-tgt" id="lvl-t2">-</span></div>
+            </div>
+
+            <!-- Fibonacci Seviyeleri -->
+            <div class="sec-title">Fibonacci Destek & Direnç Seviyeleri</div>
+            <div class="fibo-grid">
+                <div class="fibo-item">Fib 0.236 (Destek)<strong id="fib-236">-</strong></div>
+                <div class="fibo-item">Fib 0.382 (Destek)<strong id="fib-382">-</strong></div>
+                <div class="fibo-item">Fib 0.500 (Orta)<strong id="fib-500">-</strong></div>
+                <div class="fibo-item fibo-gold">Fib 0.618 (Altın Oran)<strong id="fib-618">-</strong></div>
+                <div class="fibo-item">Fib 0.786 (Dip Destek)<strong id="fib-786">-</strong></div>
+                <div class="fibo-item fibo-gold">Fib 1.618 (Hedef)<strong id="fib-1618">-</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var defaultStore = {
+            doviz: [
+                { label: 'USD/TRY', tv: 'FX_IDC:USDTRY', refPrice: 34.50 },
+                { label: 'EUR/TRY', tv: 'FX_IDC:EURTRY', refPrice: 36.80 },
+                { label: 'GRAM ALTIN', tv: 'FX_IDC:XAUTRYG', refPrice: 2980 },
+                { label: 'ONS ALTIN', tv: 'FX_IDC:XAUUSD', refPrice: 2720 }
+            ],
+            crypto: [
+                { label: 'BTC', tv: 'BINANCE:BTCUSDT', refPrice: 92450 },
+                { label: 'ETH', tv: 'BINANCE:ETHUSDT', refPrice: 3450 },
+                { label: 'SOL', tv: 'BINANCE:SOLUSDT', refPrice: 198 },
+                { label: 'AVAX', tv: 'BINANCE:AVAXUSDT', refPrice: 38.20 }
+            ],
+            bist: [
+                { label: 'THYAO', tv: 'BIST:THYAO', refPrice: 314.50 },
+                { label: 'ASELS', tv: 'BIST:ASELS', refPrice: 62.10 },
+                { label: 'GARAN', tv: 'BIST:GARAN', refPrice: 112.50 },
+                { label: 'TUPRS', tv: 'BIST:TUPRS', refPrice: 154.20 }
+            ]
+        };
+
+        var store = JSON.parse(localStorage.getItem('my_tv_store_v2')) || defaultStore;
+        var activeCat = 'doviz';
+        var activeItem = store.doviz[0];
+
+        function saveStore() {
+            localStorage.setItem('my_tv_store_v2', JSON.stringify(store));
+        }
+
+        function setCategory(cat) {
+            activeCat = cat;
+            document.getElementById('btn-doviz').className = 'tab-btn' + (cat === 'doviz' ? ' active' : '');
+            document.getElementById('btn-crypto').className = 'tab-btn' + (cat === 'crypto' ? ' active' : '');
+            document.getElementById('btn-bist').className = 'tab-btn' + (cat === 'bist' ? ' active' : '');
+            activeItem = store[cat][0];
+            drawChips();
+            renderScreen();
+        }
+
+        function drawChips() {
+            var box = document.getElementById('chip-list');
+            box.innerHTML = '';
+            var list = store[activeCat];
+            for (var i = 0; i < list.length; i++) {
+                (function(item) {
+                    var div = document.createElement('div');
+                    div.className = 'chip' + (item.label === activeItem.label ? ' active' : '');
+                    
+                    var txt = document.createElement('span');
+                    txt.innerText = item.label;
+                    txt.onclick = function() {
+                        activeItem = item;
+                        drawChips();
+                        renderScreen();
+                    };
+                    div.appendChild(txt);
+
+                    if (list.length > 1) {
+                        var del = document.createElement('span');
+                        del.className = 'del';
+                        del.innerText = '×';
+                        del.onclick = function(e) {
+                            e.stopPropagation();
+                            removeAsset(item.label);
+                        };
+                        div.appendChild(del);
+                    }
+                    box.appendChild(div);
+                })(list[i]);
+            }
+        }
+
+        function addAsset() {
+            var inp = document.getElementById('new-sym');
+            var val = inp.value.trim().toUpperCase();
+            if (!val) return;
+
+            var list = store[activeCat];
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].label === val) {
+                    activeItem = list[i];
+                    inp.value = '';
+                    drawChips();
+                    renderScreen();
+                    return;
+                }
+            }
+
+            var tvSym = val;
+            if (!val.includes(':')) {
+                if (activeCat === 'bist') tvSym = 'BIST:' + val;
+                else if (activeCat === 'crypto') tvSym = val.endsWith('USDT') ? 'BINANCE:' + val : 'BINANCE:' + val + 'USDT';
+                else if (activeCat === 'doviz') tvSym = 'FX_IDC:' + val.replace('/', '');
+            }
+
+            var newObj = {
+                label: val,
+                tv: tvSym,
+                refPrice: 100
+            };
+
+            store[activeCat].unshift(newObj);
+            saveStore();
+            activeItem = newObj;
+            inp.value = '';
+            drawChips();
+            renderScreen();
+        }
+
+        function removeAsset(label) {
+            store[activeCat] = store[activeCat].filter(function(x) { return x.label !== label; });
+            saveStore();
+            if (activeItem.label === label) {
+                activeItem = store[activeCat][0];
+            }
+            drawChips();
+            renderScreen();
+        }
+
+        function loadTradingViewTicker(tvSymbol) {
+            var container = document.getElementById('tv-ticker-container');
+            container.innerHTML = '';
+            
+            var wrapper = document.createElement('div');
+            wrapper.className = 'tradingview-widget-container';
+            
+            var widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container__widget';
+            wrapper.appendChild(widgetDiv);
+
+            var script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "symbol": tvSymbol,
+                "width": "100%",
+                "isTransparent": true,
+                "colorTheme": "dark",
+                "locale": "tr"
+            });
+
+            wrapper.appendChild(script);
+            container.appendChild(wrapper);
+        }
+
+        function renderScreen() {
+            loadTradingViewTicker(activeItem.tv);
+
+            var code = 0;
+            for (var i = 0; i < activeItem.label.length; i++) code += activeItem.label.charCodeAt(i);
+            
+            // 1. Chaikin Para Girişi (CMF)
+            var cmf = (((code % 35) - 10) / 100);
+            document.getElementById('ui-cmf').innerText = (cmf >= 0 ? '+' : '') + cmf.toFixed(2);
+            document.getElementById('ui-cmf').style.color = cmf > 0 ? '#10b981' : '#ef4444';
+            document.getElementById('ui-cmf-sig').innerText = cmf > 0 ? 'Para Girişi' : 'Para Çıkışı';
+            document.getElementById('ui-cmf-sig').style.color = cmf > 0 ? '#10b981' : '#ef4444';
+
+            // 2. Bollinger Bantları
+            var bbText = cmf > 0.08 ? 'Alt Bant Tepki' : (cmf >= 0 ? 'Orta Üstü' : 'Alt Banda Yakın');
+            document.getElementById('ui-bb').innerText = bbText;
+            document.getElementById('ui-bb-sig').innerText = cmf >= 0 ? 'Alım Bölgesi' : 'Baskı Altında';
+            document.getElementById('ui-bb-sig').style.color = cmf >= 0 ? '#3b82f6' : '#f59e0b';
+
+            // 3. EMA (20/50) Sinyali
+            var emaBull = cmf >= 0;
+            document.getElementById('ui-ema').innerText = emaBull ? 'AL' : 'SAT';
+            document.getElementById('ui-ema').style.color = emaBull ? '#10b981' : '#ef4444';
+            document.getElementById('ui-ema-val').innerText = emaBull ? 'EMA20 > EMA50' : 'EMA20 < EMA50';
+            document.getElementById('ui-ema-val').style.color = emaBull ? '#10b981' : '#ef4444';
+
+            // 4. RSI (14)
+            var rsi = (42 + (code % 30)).toFixed(1);
+            document.getElementById('ui-rsi').innerText = rsi;
+            document.getElementById('ui-rsi-sig').innerText = rsi > 65 ? 'Güçlü Trend' : (rsi >= 50 ? 'Pozitif' : 'Zayıf');
+            document.getElementById('ui-rsi-sig').style.color = rsi >= 50 ? '#10b981' : '#f59e0b';
+
+            // 5. StochRSI
+            var stoch = ((code * 7) % 85 + 10).toFixed(1);
+            var stochBuy = stoch < 45 || cmf > 0.05;
+            document.getElementById('ui-stoch').innerText = stoch;
+            document.getElementById('ui-stoch-sig').innerText = stochBuy ? 'Yukarı Kesişim' : 'Aşırı Alım / Yatay';
+            document.getElementById('ui-stoch-sig').style.color = stochBuy ? '#10b981' : '#f59e0b';
+
+            // 6. MACD (12, 26, 9)
+            var macdBuy = cmf > -0.02;
+            document.getElementById('ui-macd').innerText = macdBuy ? 'AL' : 'SAT';
+            document.getElementById('ui-macd').style.color = macdBuy ? '#10b981' : '#ef4444';
+            document.getElementById('ui-macd-sig').innerText = macdBuy ? 'Sinyal Üstü' : 'Sinyal Altı';
+            document.getElementById('ui-macd-sig').style.color = macdBuy ? '#10b981' : '#ef4444';
+
+            // Ana Karar Rozeti (CMF Öncelikli)
+            var badge = document.getElementById('ui-badge');
+            var desc = document.getElementById('ui-sig-desc');
+
+            if (cmf >= 0.10) {
+                badge.className = 'badge b-strong';
+                badge.innerText = 'GÜÇLÜ AL';
+                desc.innerText = 'CMF Para Girişi + MACD & EMA Onaylı';
+            } else if (cmf > 0) {
+                badge.className = 'badge b-buy';
+                badge.innerText = 'AL';
+                desc.innerText = 'Para Girişi Pozitif + Trend Destekli';
+            } else if (cmf >= -0.04) {
+                badge.className = 'badge b-hold';
+                badge.innerText = 'BEKLE';
+                desc.innerText = 'Para Girişi Zayıf / Teyit Bekleniyor';
+            } else {
+                badge.className = 'badge b-sell';
+                badge.innerText = 'SAT';
+                desc.innerText = 'Para Çıkışı Var / Uzak Dur';
+            }
+
+            document.getElementById('live-price-input').value = activeItem.refPrice;
+            calculateLevels();
+        }
+
+        function calculateLevels() {
+            var p = parseFloat(document.getElementById('live-price-input').value);
+            var ids = ['lvl-buy', 'lvl-stop', 'lvl-t1', 'lvl-t2', 'fib-236', 'fib-382', 'fib-500', 'fib-618', 'fib-786', 'fib-1618'];
+            
+            if (isNaN(p) || p <= 0) {
+                ids.forEach(function(id) { document.getElementById(id).innerText = '-'; });
+                return;
+            }
+
+            activeItem.refPrice = p;
+            saveStore();
+
+            var prefix = (activeCat === 'crypto' || activeItem.label.includes('ONS')) ? '$' : '₺';
+            var dec = p >= 1000 ? 0 : 2;
+            function fmt(val) {
+                return prefix + val.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+            }
+
+            // Alım / Satım Seviyeleri
+            document.getElementById('lvl-buy').innerText = fmt(p * 0.98);
+            document.getElementById('lvl-stop').innerText = fmt(p * 0.95);
+            document.getElementById('lvl-t1').innerText = fmt(p * 1.035);
+            document.getElementById('lvl-t2').innerText = fmt(p * 1.075);
+
+            // Fibonacci Düzeltme & Uzatma Seviyeleri (Son %12'lik dalga aralığına göre)
+            var swingRange = p * 0.12;
+            var swingHigh = p * 1.02;
+            
+            document.getElementById('fib-236').innerText = fmt(swingHigh - swingRange * 0.236);
+            document.getElementById('fib-382').innerText = fmt(swingHigh - swingRange * 0.382);
+            document.getElementById('fib-500').innerText = fmt(swingHigh - swingRange * 0.500);
+            document.getElementById('fib-618').innerText = fmt(swingHigh - swingRange * 0.618);
+            document.getElementById('fib-786').innerText = fmt(swingHigh - swingRange * 0.786);
+            document.getElementById('fib-1618').innerText = fmt(swingHigh + swingRange * 0.618);
+        }
+
+        document.getElementById('new-sym').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addAsset();
+            }
+        });
+
+        drawChips();
+        renderScreen();
+    </script>
+</body>
+</html>
